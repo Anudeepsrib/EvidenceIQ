@@ -1,0 +1,108 @@
+# EvidenceIQ - Docker Compose
+# Complete stack: API, ChromaDB volume, and Ollama sidecar
+
+version: "3.8"
+
+services:
+  # Main EvidenceIQ API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: evidenceiq-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - DATABASE_URL=sqlite:///./storage/evidenceiq.db
+      - STORAGE_ROOT=./storage
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - CHROMA_DB_PATH=./storage/chromadb
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+    volumes:
+      - evidenceiq-storage:/app/storage
+      - evidenceiq-chromadb:/app/storage/chromadb
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - evidenceiq-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Ollama - Local AI models
+  ollama:
+    image: ollama/ollama:latest
+    container_name: evidenceiq-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_ORIGINS=*
+    networks:
+      - evidenceiq-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    # Pre-pull required models
+    entrypoint: >
+      sh -c "
+        /bin/ollama serve &
+        sleep 10
+        echo 'Pulling vision models...'
+        ollama pull llava
+        ollama pull bakllava
+        ollama pull moondream
+        ollama pull mistral
+        echo 'Models ready'
+        wait
+      "
+
+  # Optional: PostgreSQL for production
+  # Uncomment to use PostgreSQL instead of SQLite
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: evidenceiq-db
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_USER=evidenceiq
+  #     - POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+  #     - POSTGRES_DB=evidenceiq
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - evidenceiq-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U evidenceiq"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  evidenceiq-storage:
+    driver: local
+  evidenceiq-chromadb:
+    driver: local
+  ollama-data:
+    driver: local
+  # postgres-data:
+  #   driver: local
+
+networks:
+  evidenceiq-network:
+    driver: bridge

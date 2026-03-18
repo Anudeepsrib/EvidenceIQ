@@ -34,6 +34,7 @@ env/
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # IDE
 .idea/
@@ -44,6 +45,7 @@ env/
 
 # Logs
 *.log
+logs/
 
 # OS files
 .DS_Store
@@ -65,12 +67,21 @@ htmlcov/
 # Local development
 *.local
 
-# Test directories
-test_media/
-test_organized/
-verify_backend.py
-
-# AI Tooling
+# AI/Agent folders
 .agent/
+
+# EvidenceIQ specific
+storage/
+uploads/
+redacted/
 .chromadb/
+chromadb_data/
+ollama/
+*.db
+*.sqlite
+*.sqlite3
+
+# Alembic
+alembic/versions/*.py
+!alembic/versions/.gitkeep
 
