@@ -1,5 +1,7 @@
-# EvidenceIQ
-
+<div align="center">
+  <img src="static/logo.png" alt="EvidenceIQ Logo" width="150" height="150" />
+  <h1>EvidenceIQ</h1>
+</div>
 **Privacy-first local multimodal intelligence platform. Zero external API calls. Fully air-gap capable.**
 
 EvidenceIQ transforms media analysis for organizations handling sensitive materials — legal firms managing deposition recordings, HR departments storing incident documentation, healthcare providers with patient imaging, and compliance teams reviewing surveillance stills.

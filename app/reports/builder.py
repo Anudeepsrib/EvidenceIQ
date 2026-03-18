@@ -95,7 +95,18 @@ def build_evidence_report(
     )
     
     # Cover Page
-    elements.append(Spacer(1, 2 * inch))
+    elements.append(Spacer(1, 1 * inch))
+    
+    # Add Logo if available
+    logo_path = Path("static/logo.png")
+    if logo_path.exists():
+        try:
+            logo = Image(str(logo_path), width=1.5 * inch, height=1.5 * inch)
+            elements.append(logo)
+            elements.append(Spacer(1, 0.2 * inch))
+        except Exception:
+            pass  # Fallback if image is invalid or unreadable
+            
     elements.append(Paragraph("EvidenceIQ Report", title_style))
     elements.append(Spacer(1, 0.3 * inch))
     
