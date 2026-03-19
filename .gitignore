@@ -98,7 +98,12 @@ build_errors*.txt
 next-env.d.ts
 .env*.local
 
-# EvidenceIQ root
-package.json
+# EvidenceIQ - ensure UI's package.json is tracked
 !evidenceiq-ui/package.json
 
+# Local artifacts from build/dev
+build_log.txt
+dev_log_retry.txt
+build_errors*.txt
+build_log*.txt
+dev_log*.txt
