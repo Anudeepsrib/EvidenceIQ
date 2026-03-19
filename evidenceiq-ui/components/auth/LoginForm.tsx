@@ -13,6 +13,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { api } from "@/lib/api/auth";
 import type { Role } from "@/lib/types/auth";
@@ -80,55 +81,58 @@ export function LoginForm() {
       <div>
         <label
           htmlFor="username"
-          className="block text-sm font-medium text-text-secondary mb-2"
+          className="block text-xs font-mono uppercase tracking-widest text-text-tertiary mb-2"
         >
-          Username
+          Operator ID
         </label>
         <input
           id="username"
           type="text"
           {...register("username")}
-          className="w-full px-4 py-3 bg-surface-raised border border-border rounded-md text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-          placeholder="Enter your username"
+          className="w-full px-4 py-3 bg-surface-raised border border-border rounded text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent/50 focus:border-accent transition-all duration-200"
+          placeholder="Enter username..."
           disabled={isLoading}
         />
         {errors.username && (
-          <p className="mt-1 text-sm text-error">{errors.username.message}</p>
+          <p className="mt-1 text-[10px] text-error uppercase font-mono">{errors.username.message}</p>
         )}
       </div>
 
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-text-secondary mb-2"
+          className="block text-xs font-mono uppercase tracking-widest text-text-tertiary mb-2"
         >
-          Password
+          Secure Key
         </label>
         <input
           id="password"
           type="password"
           {...register("password")}
-          className="w-full px-4 py-3 bg-surface-raised border border-border rounded-md text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-          placeholder="Enter your password"
+          className="w-full px-4 py-3 bg-surface-raised border border-border rounded text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent/50 focus:border-accent transition-all duration-200"
+          placeholder="Enter password..."
           disabled={isLoading}
         />
         {errors.password && (
-          <p className="mt-1 text-sm text-error">{errors.password.message}</p>
+          <p className="mt-1 text-[10px] text-error uppercase font-mono">{errors.password.message}</p>
         )}
       </div>
 
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full py-3 px-4 bg-accent hover:bg-accent-hover text-background font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed"
+        className="relative overflow-hidden w-full py-3 px-4 bg-accent hover:bg-accent-hover text-background font-bold rounded transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed group"
       >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Signing in...
-          </span>
-        ) : (
-          "Sign In"
+        <span className={cn(
+          "flex items-center justify-center gap-2 transition-transform duration-300",
+          isLoading ? "opacity-0" : "group-hover:translate-x-1"
+        )}>
+          Authorize Access
+        </span>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 animate-spin" />
+          </div>
         )}
       </button>
     </form>
