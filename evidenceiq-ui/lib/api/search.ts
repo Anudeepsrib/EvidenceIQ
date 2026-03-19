@@ -3,7 +3,7 @@
  * API calls for semantic and tag search.
  */
 
-import apiClient from "../client";
+import apiClient from "./client";
 import type {
   SemanticSearchRequest,
   TagSearchRequest,

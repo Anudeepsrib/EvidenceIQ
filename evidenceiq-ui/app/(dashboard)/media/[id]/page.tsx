@@ -49,7 +49,8 @@ export default function MediaDetailPage() {
   const mediaId = params.id as string;
   const user = useAuthStore((state) => state.user);
 
-  const { data: media, isLoading } = useMediaItem(mediaId);
+  const { data, isLoading } = useMediaItem(mediaId);
+  const media: any = data;
   const processMutation = useProcessMedia();
 
   const canReprocess = user ? permissions.canReprocess(user.role) : false;

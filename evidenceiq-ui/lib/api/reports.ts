@@ -3,7 +3,7 @@
  * API calls for report generation and management.
  */
 
-import apiClient from "../client";
+import apiClient from "./client";
 import type {
   CreateReportRequest,
   Report,

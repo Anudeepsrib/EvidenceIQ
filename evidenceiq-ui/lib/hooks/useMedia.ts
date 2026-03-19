@@ -31,23 +31,14 @@ export function useMediaItem(id: string | null) {
     queryKey: [MEDIA_QUERY_KEY, id],
     queryFn: () => mediaApi.getMediaItem(id!),
     enabled: !!id,
-    refetchInterval: (data) => {
+    refetchInterval: (query: any) => {
+      const data = query?.state?.data;
       // Poll every 5 seconds while processing or pending
       if (data && (data.processing_status === "processing" || data.processing_status === "pending")) {
         return 5000;
       }
       // Stop polling when ready or failed
       return false;
-    },
-    onSuccess: (data: MediaItem) => {
-      // Show toast when processing completes
-      if (data.processing_status === "ready") {
-        queryClient.invalidateQueries({ queryKey: [MEDIA_QUERY_KEY, "list"] });
-        toast.success(`Processing complete: ${data.original_filename}`);
-      }
-      if (data.processing_status === "failed") {
-        toast.error(`Processing failed: ${data.original_filename}`);
-      }
     },
   });
 }

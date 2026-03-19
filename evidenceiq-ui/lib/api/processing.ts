@@ -3,7 +3,7 @@
  * API calls for media processing.
  */
 
-import apiClient from "../client";
+import apiClient from "./client";
 import type {
   ProcessingResult,
   ProcessingStatusResponse,

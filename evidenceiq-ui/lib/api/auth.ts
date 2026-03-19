@@ -3,7 +3,7 @@
  * Authentication API calls for EvidenceIQ backend.
  */
 
-import apiClient from "../client";
+import apiClient from "./client";
 import type {
   LoginRequest,
   LoginResponse,

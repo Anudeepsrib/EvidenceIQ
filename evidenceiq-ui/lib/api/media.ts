@@ -3,7 +3,7 @@
  * API calls for media management.
  */
 
-import apiClient from "../client";
+import apiClient from "./client";
 import type {
   MediaUploadResponse,
   MediaItem,
