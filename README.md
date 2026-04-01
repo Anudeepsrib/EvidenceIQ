@@ -1,23 +1,199 @@
 <div align="center">
-  <img src="static/logo.png" alt="EvidenceIQ Logo" width="150" height="150" />
-  <h1>EvidenceIQ</h1>
+  <img src="static/logo.png" alt="EvidenceIQ Logo" width="150" style="border-radius: 20%; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
+  
+  <h1 style="margin-top: 0;">EvidenceIQ 🔬</h1>
+  
+  <p><b>"Clone it. Run it. Own it. Your media never leaves your machine."</b></p>
+  
+  <p>A privacy-first, fully local multimodal intelligence platform for organizations handling sensitive media — zero external API calls, fully air-gap capable.</p>
+
+  <p>
+    <a href="https://github.com/Anudeepsrib/EvidenceIQ">
+      <img src="https://img.shields.io/github/stars/Anudeepsrib/EvidenceIQ?style=for-the-badge&logo=github" alt="GitHub stars" />
+    </a>
+    <a href="https://github.com/Anudeepsrib/EvidenceIQ">
+      <img src="https://img.shields.io/github/forks/Anudeepsrib/EvidenceIQ?style=for-the-badge&logo=github" alt="GitHub forks" />
+    </a>
+    <a href="https://github.com/Anudeepsrib/EvidenceIQ/blob/main/LICENSE">
+      <img src="https://img.shields.io/github/license/Anudeepsrib/EvidenceIQ?style=for-the-badge" alt="License" />
+    </a>
+  </p>
+
+  <p>
+    <a href="#-core-features">Features</a> •
+    <a href="#-quick-start">Quick Start</a> •
+    <a href="#%EF%B8%8F-tech-stack">Tech Stack</a> •
+    <a href="#-models--llms">Models</a> •
+    <a href="#-who-uses-evidenceiq">Use Cases</a>
+  </p>
+  
+  <a href="https://github.com/Anudeepsrib/EvidenceIQ">
+    <img src="https://github-readme-stats.vercel.app/api/pin/?username=Anudeepsrib&repo=EvidenceIQ&theme=radical&show_owner=true" alt="Readme Card" />
+  </a>
 </div>
-**Privacy-first local multimodal intelligence platform. Zero external API calls. Fully air-gap capable.**
 
-EvidenceIQ transforms media analysis for organizations handling sensitive materials — legal firms managing deposition recordings, HR departments storing incident documentation, healthcare providers with patient imaging, and compliance teams reviewing surveillance stills.
+---
 
-> ⚠️ **The problem with cloud-based media AI:** Every upload to cloud vision APIs creates a privacy liability. Data leaves your infrastructure, traverses networks you don't control, and resides on servers subject to foreign jurisdictions. For organizations handling sensitive media, this isn't just risky — it's often non-compliant with GDPR, HIPAA, and legal discovery rules.
+## 🔒 The Zero-Cloud Promise
 
-## Who Uses EvidenceIQ
+EvidenceIQ is built on the philosophy of complete data sovereignty. Your sensitive media should never leave your infrastructure.
 
-| Organization | Use Case |
-|-------------|----------|
-| **Legal Firms** | Organize deposition recordings, redact sensitive metadata, generate chain-of-custody reports |
-| **HR Departments** | Document incident reports, ensure metadata integrity, controlled access |
-| **Healthcare** | Process patient imaging internally, zero PHI transmission |
-| **Compliance Teams** | Review surveillance stills, automated tagging, audit trail preservation |
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🚫 Zero External API Calls</h3>
+      <p>No cloud vision APIs (Google, Azure, AWS). All AI inference runs locally via Ollama. Your media never traverses networks you don't control.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🧠 Local AI Processing</h3>
+      <p>Vision models (LLaVA, BakLLaVA, Moondream) and CLIP embeddings run entirely on your hardware. Zero data transmission.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>💾 Sovereign SQLite</h3>
+      <p>All data, metadata, tags, and audit logs live inside a single <code>evidenceiq.db</code> file that you alone own and control.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>📡 Zero Telemetry</h3>
+      <p>No hidden analytics, tracking, or data harvesting. Fully air-gap capable — works entirely offline after initial setup.</p>
+    </td>
+  </tr>
+</table>
 
-## Architecture
+---
+
+## ✨ Core Features
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <b>🔍 Multimodal Vision</b><br/>
+      Automatic classification, description, and entity tagging for images and video frames. Supports JPEG, PNG, TIFF, WEBP, MP4, MOV, AVI, and PDF.
+    </td>
+    <td width="33%" valign="top">
+      <b>🔗 Chain of Custody</b><br/>
+      SHA256 hashing on every upload. Hash verified on every access. Append-only audit logs for forensic-level integrity.
+    </td>
+    <td width="33%" valign="top">
+      <b>🔐 RBAC Access Control</b><br/>
+      Four-tier role system (Admin, Investigator, Reviewer, Viewer) with granular permissions for upload, tag, export, redact, and delete.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <b>🧲 Semantic Search</b><br/>
+      CLIP-powered similarity search via local ChromaDB. Find media by meaning, not just keywords.
+    </td>
+    <td width="33%" valign="top">
+      <b>🛡️ PII Scrubbing</b><br/>
+      Automatic EXIF extraction and PII detection via Presidio. Redacted copies are separate — originals are never modified.
+    </td>
+    <td width="33%" valign="top">
+      <b>📄 Report Generation</b><br/>
+      Generate watermarked PDF reports stamped "CONFIDENTIAL — EvidenceIQ" with full audit trail lineage.
+    </td>
+  </tr>
+</table>
+
+---
+
+## 👥 Who Uses EvidenceIQ
+
+<table>
+  <tr>
+    <td width="25%" valign="top">
+      <b>⚖️ Legal Firms</b><br/>
+      Organize deposition recordings, redact sensitive metadata, generate chain-of-custody reports.
+    </td>
+    <td width="25%" valign="top">
+      <b>🏢 HR Departments</b><br/>
+      Document incident reports, ensure metadata integrity, controlled role-based access.
+    </td>
+    <td width="25%" valign="top">
+      <b>🏥 Healthcare</b><br/>
+      Process patient imaging internally with zero PHI transmission. HIPAA-friendly by design.
+    </td>
+    <td width="25%" valign="top">
+      <b>🔎 Compliance Teams</b><br/>
+      Review surveillance stills, automated tagging, audit trail preservation for regulatory compliance.
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🚀 Quick Start
+
+Get up and running locally in under 10 minutes.
+
+### 1. Pull Vision Models
+Ensure you have [Ollama](https://ollama.com) installed and pull the required models:
+```bash
+# Vision models
+ollama pull llava           # Default vision model
+ollama pull bakllava        # Alternative vision model
+ollama pull moondream       # Lightweight vision model
+
+# Text model
+ollama pull mistral         # For metadata summarization
+```
+
+### 2. Clone & Bootstrap
+
+**Docker Compose (Recommended):**
+```bash
+git clone https://github.com/Anudeepsrib/EvidenceIQ.git
+cd EvidenceIQ
+
+# Configure environment
+cp .env.example .env
+# Edit .env and set SECRET_KEY: openssl rand -hex 32
+
+# Start all services
+docker-compose up -d
+
+# Wait for Ollama to pull models (first start takes time)
+docker-compose logs -f ollama
+```
+
+**Development Setup:**
+```bash
+git clone https://github.com/Anudeepsrib/EvidenceIQ.git
+cd EvidenceIQ
+
+# Backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+alembic upgrade head
+
+# Frontend
+cd evidenceiq-ui
+npm install
+```
+
+### 3. Launch
+Launch two terminal windows to start the backend engine and frontend interface.
+
+**Terminal 1 — FastAPI Backend:**
+```bash
+source venv/bin/activate  # Windows: venv\Scripts\activate
+uvicorn app.main:app --reload
+```
+
+**Terminal 2 — Next.js Frontend:**
+```bash
+cd evidenceiq-ui
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) for the UI and [http://localhost:8000/docs](http://localhost:8000/docs) for the API docs.
+
+---
+
+## 🏗️ Architecture
 
 ```
 ┌─────────────────┐
@@ -26,12 +202,12 @@ EvidenceIQ transforms media analysis for organizations handling sensitive materi
          │
          ▼
 ┌──────────────────────────────────────────────────────────┐
-│                      INGEST PIPELINE                       │
-│  • MIME validation (python-magic)                          │
-│  • Filename sanitization (path traversal protection)       │
-│  • SHA256 hash computation (chain of custody)               │
-│  • UUID-based internal storage paths                       │
-│  • EXIF extraction + PII scrubbing (presidio-analyzer)     │
+│                      INGEST PIPELINE                     │
+│  • MIME validation (python-magic)                        │
+│  • Filename sanitization (path traversal protection)     │
+│  • SHA256 hash computation (chain of custody)            │
+│  • UUID-based internal storage paths                     │
+│  • EXIF extraction + PII scrubbing (presidio-analyzer)   │
 └────────┬─────────────────────────────────────────────────┘
          │
          ▼
@@ -46,19 +222,19 @@ EvidenceIQ transforms media analysis for organizations handling sensitive materi
 │                  VISION PIPELINE                         │
 │  • Classification (document | photograph | screenshot    │
 │    | diagram | surveillance | medical | chart | mixed)   │
-│  • Description generation (2-3 factual sentences)      │
+│  • Description generation (2-3 factual sentences)        │
 │  • Entity tagging (people, objects, location, etc.)      │
 │                                                          │
-│  Models: LLaVA, BakLLaVA, Moondream via Ollama (local)   │
+│  Models: LLaVA, BakLLaVA, Moondream via Ollama (local)  │
 └────────┬─────────────────────────────────────────────────┘
          │
          ▼
 ┌──────────────────────────────────────────────────────────┐
 │                    SQLITE DATABASE                       │
-│  • Media items + metadata                              │
+│  • Media items + metadata                                │
 │  • Tags extracted from vision pipeline                   │
-│  • Users + RBAC                                        │
-│  • Append-only audit logs                              │
+│  • Users + RBAC                                          │
+│  • Append-only audit logs                                │
 └──────────────────────────────────────────────────────────┘
          │
     ┌────┴────┬──────────┐
@@ -68,7 +244,81 @@ EvidenceIQ transforms media analysis for organizations handling sensitive materi
 └────────┘ └────────┘ └────────┘
 ```
 
-## RBAC Matrix
+---
+
+## 🛠️ Tech Stack
+
+<table>
+  <tr>
+    <th width="50%">Frontend (Next.js App Router)</th>
+    <th width="50%">Backend (Data Engine)</th>
+  </tr>
+  <tr>
+    <td valign="top">
+      <ul>
+        <li><b>Framework:</b> Next.js 15</li>
+        <li><b>Styling:</b> Tailwind CSS v3 + Lucide Icons</li>
+        <li><b>State:</b> TanStack Query + Zustand</li>
+        <li><b>Forms:</b> React Hook Form + Zod</li>
+        <li><b>Language:</b> TypeScript</li>
+      </ul>
+    </td>
+    <td valign="top">
+      <ul>
+        <li><b>API:</b> FastAPI (Python 3.11+)</li>
+        <li><b>Database:</b> SQLAlchemy + Alembic</li>
+        <li><b>AI Orchestration:</b> Ollama SDK</li>
+        <li><b>Vector Store:</b> ChromaDB + CLIP</li>
+        <li><b>PII Detection:</b> Presidio Analyzer</li>
+        <li><b>Logging:</b> Structlog</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🧠 Models & LLMs
+
+We recommend local models for optimal media analysis. Vision models are required; text models enhance metadata summarization.
+
+| Model | Type | Resource Size | Best Use Case |
+|-------|------|---------------|---------------|
+| **LLaVA** | 🖼️ Vision | `~4GB RAM` | Default vision analysis. Best accuracy for classification and description. |
+| **BakLLaVA** | 🖼️ Vision | `~4GB RAM` | Alternative vision model. Strong entity tagging. |
+| **Moondream** | 🖼️ Vision | `~2GB RAM` | Lightweight vision. Ideal for older hardware or edge devices. |
+| **Mistral 7B** | 📝 Text | `~4GB RAM` | Metadata summarization, report narrative generation. |
+
+---
+
+## 🔐 Security Features
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🎫 JWT Authentication</h3>
+      <p>60-minute access tokens, 7-day refresh tokens. Secure session management without cloud dependency.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🛡️ RBAC Enforcement</h3>
+      <p>Hidden (not disabled) permissions — unauthorized requests receive a generic 403. No information leakage.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>⏱️ Rate Limiting</h3>
+      <p>60 requests per minute per user via SlowAPI. Protection against abuse without external infrastructure.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🧱 Defense in Depth</h3>
+      <p>Path traversal protection (UUID storage), SQL injection prevention (ORM parameterized queries), masked stack traces in production.</p>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🔑 RBAC Matrix
 
 | Role | Upload | View | Tag | Export | Redact | Manage Users | Delete |
 |------|--------|------|-----|--------|--------|--------------|--------|
@@ -77,116 +327,9 @@ EvidenceIQ transforms media analysis for organizations handling sensitive materi
 | `reviewer` | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
 | `viewer` | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-## Supported Media Types
+---
 
-| Type | MIME | Processing |
-|------|------|------------|
-| JPEG | image/jpeg | EXIF extraction, vision analysis, CLIP embedding |
-| PNG | image/png | Vision analysis, CLIP embedding |
-| TIFF | image/tiff | EXIF extraction, vision analysis, CLIP embedding |
-| WEBP | image/webp | Vision analysis, CLIP embedding |
-| MP4 | video/mp4 | Frame extraction (1fps), each frame analyzed |
-| MOV | video/quicktime | Frame extraction (1fps), each frame analyzed |
-| AVI | video/x-msvideo | Frame extraction (1fps), each frame analyzed |
-| PDF | application/pdf | Image extraction, each image analyzed |
-
-## Local Model Setup
-
-Pull required Ollama models before first use:
-
-```bash
-# Vision models
-ollama pull llava          # Default vision model
-ollama pull bakllava       # Alternative vision model
-ollama pull moondream      # Lightweight vision model
-
-# Text model
-ollama pull mistral        # For metadata summarization
-```
-
-## Chain of Custody
-
-EvidenceIQ maintains forensic-level integrity:
-
-1. **SHA256 Hashing:** Every file is hashed on upload. Hash verified on every access.
-2. **Redaction Audit Trail:** Original files are never modified. Redacted copies are separate files with new hashes.
-3. **Report Watermarking:** Generated PDFs contain "CONFIDENTIAL — EvidenceIQ" watermark on every page.
-4. **Append-Only Audit Log:** All permission-sensitive actions logged to tamper-evident audit table.
-
-**Why this matters for legal admissibility:** Courts increasingly require proof that digital evidence hasn't been tampered with. EvidenceIQ's hash chain and audit logs provide this foundation.
-
-## Zero External Calls Guarantee
-
-EvidenceIQ makes **zero external API calls** after initialization:
-
-- ❌ No cloud vision APIs (Google, Azure, AWS)
-- ❌ No external embedding services
-- ❌ No telemetry or analytics
-- ✅ CLIP embeddings run locally
-- ✅ Vision models run via local Ollama
-- ✅ Vector store (ChromaDB) is local and persistent
-
-Fully air-gap capable. Works entirely offline after initial setup.
-
-## Setup Instructions
-
-### Docker Compose (Recommended)
-
-```bash
-# 1. Clone repository
-git clone https://github.com/anudeepsrib/evidenceiq.git
-cd evidenceiq
-
-# 2. Configure environment
-cp .env.example .env
-# Edit .env and set SECRET_KEY: openssl rand -hex 32
-
-# 3. Start services
-docker-compose up -d
-
-# 4. Wait for Ollama to pull models (first start takes time)
-docker-compose logs -f ollama
-
-# 5. Access API at http://localhost:8000
-```
-
-### First Admin User Creation
-
-```bash
-# Create admin user via API
-curl -X POST http://localhost:8000/users \
-  -H "Authorization: Bearer <admin_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin",
-    "password": "secure-password-123",
-    "email": "admin@example.com",
-    "role": "admin"
-  }'
-```
-
-### Development Setup
-
-```bash
-# 1. Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Configure .env
-cp .env.example .env
-# Edit .env
-
-# 4. Run database migrations
-alembic upgrade head
-
-# 5. Start development server
-uvicorn app.main:app --reload
-```
-
-## API Overview
+## 📡 API Overview
 
 | Endpoint | Method | Description | Auth |
 |----------|--------|-------------|------|
@@ -204,33 +347,44 @@ uvicorn app.main:app --reload
 | `/reports/generate` | POST | Generate PDF report | Export permission |
 | `/audit/logs` | GET | Query audit logs | Audit permission |
 
-## Security Features
+---
 
-- **JWT Authentication:** 60-minute access tokens, 7-day refresh tokens
-- **Role-Based Access Control:** Hidden (not disabled) — 403 with generic message
-- **Rate Limiting:** 60 requests per minute per user
-- **File Integrity:** SHA256 hash verified on every file access
-- **Path Traversal Protection:** UUID-based internal paths, sanitized filenames
-- **SQL Injection Prevention:** SQLAlchemy ORM with parameterized queries
-- **No Stack Traces:** Global exception handler masks internals in production
+## ⚙️ Configuration
 
-## Environment Variables
+Your instance can be customized entirely via the `.env` file:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SECRET_KEY` | **Required** | JWT signing key (generate with `openssl rand -hex 32`) |
-| `APP_ENV` | `development` | Environment: development, staging, production |
-| `DATABASE_URL` | `sqlite:///./evidenceiq.db` | Database connection string |
-| `STORAGE_ROOT` | `./storage` | File storage directory |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API endpoint |
-| `CHROMA_DB_PATH` | `./chromadb_data` | Vector store directory |
-| `MAX_FILE_SIZE_MB` | `500` | Maximum upload size |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | JWT expiration |
+```env
+# Security (REQUIRED - generate with: openssl rand -hex 32)
+SECRET_KEY=your-generated-secret-key
 
-## License
+# Environment
+APP_ENV=development
 
-MIT License — See LICENSE file for details.
+# Local Database Persistence
+DATABASE_URL=sqlite:///./evidenceiq.db
+STORAGE_ROOT=./storage
+
+# AI Provider targeting a local Ollama instance
+OLLAMA_BASE_URL=http://localhost:11434
+
+# Vector Store
+CHROMA_DB_PATH=./chromadb_data
+
+# Upload Limits
+MAX_FILE_SIZE_MB=500
+
+# JWT Configuration
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+```
 
 ---
 
-**EvidenceIQ:** Local intelligence. Private by design.
+## ⚠️ Disclaimer
+**General Use Only:** EvidenceIQ is an open-source software project. It does **not** constitute legal advice, certification, or guarantee of forensic admissibility. Organizations with specific compliance requirements should consult qualified legal and cybersecurity professionals. Always validate chain-of-custody workflows against your jurisdiction's requirements.
+
+---
+
+<div align="center">
+  <p>Built with 🔒 for teams who refuse to compromise on privacy.</p>
+  <p><b>EvidenceIQ:</b> Local intelligence. Private by design.</p>
+</div>
