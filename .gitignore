@@ -45,6 +45,7 @@ env/
 # Logs
 *.log
 logs/
+log/
 
 # OS files
 .DS_Store
@@ -73,12 +74,33 @@ htmlcov/
 storage/
 uploads/
 redacted/
+thumbnails/
+reports/generated/
+storage/reports/
 .chromadb/
 chromadb_data/
 ollama/
 *.db
+*.db-*
 *.sqlite
+*.sqlite-*
 *.sqlite3
+*.sqlite3-*
+*.sqlite-wal
+*.sqlite-shm
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite-journal
+*.sqlite3-journal
+
+# Secret material
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
 
 # Alembic
 alembic/versions/*.py

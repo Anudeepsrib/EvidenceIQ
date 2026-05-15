@@ -76,7 +76,7 @@ def extract_images_from_pdf(pdf_path: str) -> List[Dict[str, Any]]:
                         "uuid": img_uuid,
                         "page_number": page_num + 1,
                         "image_index": img_index,
-                        "extracted_path": str(img_path.relative_to(storage_root)),
+                        "extracted_path": img_path.relative_to(storage_root).as_posix(),
                         "mime_type": f"image/{image_ext}",
                         "file_size_bytes": len(image_bytes),
                         "width_px": width,

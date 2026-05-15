@@ -136,6 +136,7 @@ def list_action_types(
             # Search/Reports
             AuditActionType.SEARCH,
             AuditActionType.REPORT_GENERATE,
+            AuditActionType.EXPORT,
             # System
             AuditActionType.SYSTEM_ERROR,
             AuditActionType.CONFIG_CHANGE,

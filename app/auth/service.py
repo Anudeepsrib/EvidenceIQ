@@ -2,8 +2,8 @@
 EvidenceIQ Authentication Service
 JWT handling, bcrypt password hashing, and token management.
 """
-from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Mapping, Optional, Tuple, Union
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -27,7 +27,10 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: TokenData, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    data: Union[TokenData, Mapping[str, str]],
+    expires_delta: Optional[timedelta] = None
+) -> str:
     """
     Create a JWT access token.
     
@@ -38,14 +41,22 @@ def create_access_token(data: TokenData, expires_delta: Optional[timedelta] = No
     Returns:
         Encoded JWT string
     """
-    to_encode = {"sub": data.sub, "role": data.role}
+    if isinstance(data, TokenData):
+        subject = data.sub
+        role = data.role
+    else:
+        subject = data.get("sub")
+        role = data.get("role")
+
+    to_encode = {"sub": subject, "role": role}
     
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
     
     to_encode["exp"] = expire
+    to_encode["iat"] = datetime.now(timezone.utc)
     to_encode["type"] = "access"
     
     encoded_jwt = jwt.encode(
@@ -66,10 +77,11 @@ def create_refresh_token(user_id: str) -> str:
     Returns:
         Encoded JWT refresh token
     """
-    expire = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
     to_encode = {
         "sub": user_id,
         "exp": expire,
+        "iat": datetime.now(timezone.utc),
         "type": "refresh"
     }
     

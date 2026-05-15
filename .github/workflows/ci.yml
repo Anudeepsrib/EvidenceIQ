@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend syntax and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libmagic1
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Compile
+        env:
+          SECRET_KEY: ci-only-evidenceiq-secret-not-for-production-000000
+          APP_ENV: test
+        run: python -m compileall app tests
+      - name: Test
+        env:
+          SECRET_KEY: ci-only-evidenceiq-secret-not-for-production-000000
+          APP_ENV: test
+          DATABASE_URL: sqlite:///./test-evidenceiq.db
+        run: pytest
+
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: evidenceiq-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: evidenceiq-ui/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: evidenceiq-ui/package-lock.json
+      - name: Python audit
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r requirements.txt
+      - name: Frontend audit
+        working-directory: evidenceiq-ui
+        run: |
+          npm ci
+          npm audit --audit-level=moderate

@@ -6,16 +6,30 @@ import os
 import re
 import uuid
 import hashlib
+from urllib.parse import unquote
 from pathlib import Path
-from typing import Tuple, Optional, Dict, Any, BinaryIO
+from typing import Tuple, Optional, Dict, Any
 from datetime import datetime
 
-import magic
 from PIL import Image
 import piexif
-from presidio_analyzer import AnalyzerEngine
 
 from app.config import settings
+
+try:
+    import magic
+except Exception:
+    magic = None
+
+try:
+    import filetype
+except Exception:
+    filetype = None
+
+try:
+    from presidio_analyzer import AnalyzerEngine
+except Exception:
+    AnalyzerEngine = None
 
 # Accepted MIME types
 ACCEPTED_IMAGE_TYPES = {
@@ -45,8 +59,46 @@ MIME_TO_EXT = {
     'application/pdf': '.pdf'
 }
 
-# Initialize PII analyzer
-pii_analyzer = AnalyzerEngine()
+MIME_TO_ALLOWED_EXTENSIONS = {
+    'image/jpeg': {'.jpg', '.jpeg'},
+    'image/png': {'.png'},
+    'image/tiff': {'.tif', '.tiff'},
+    'image/webp': {'.webp'},
+    'video/mp4': {'.mp4'},
+    'video/quicktime': {'.mov', '.qt'},
+    'video/x-msvideo': {'.avi'},
+    'video/webm': {'.webm'},
+    'application/pdf': {'.pdf'},
+}
+
+SENSITIVE_EXIF_FIELDS = {
+    'GPSInfo': 'gps_coordinates',
+    'GPSLatitude': 'gps_coordinates',
+    'GPSLatitudeRef': 'gps_coordinates',
+    'GPSLongitude': 'gps_coordinates',
+    'GPSLongitudeRef': 'gps_coordinates',
+    'GPSAltitude': 'gps_coordinates',
+    'GPSAltitudeRef': 'gps_coordinates',
+    'GPSDateStamp': 'gps_coordinates',
+    'BodySerialNumber': 'camera_serial',
+    'SerialNumber': 'camera_serial',
+    'CameraOwnerName': 'owner_name',
+    'OwnerName': 'owner_name',
+    'Artist': 'owner_name',
+    'Copyright': 'copyright',
+    'ImageDescription': 'description',
+    'UserComment': 'user_comment',
+    'Software': 'software_version',
+}
+
+PII_PATTERNS = {
+    "email": re.compile(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"),
+    "phone": re.compile(r"\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b"),
+    "ssn": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    "medical_id": re.compile(r"(?i)\b(?:MRN|medical\s*record|patient\s*id|medical\s*id)\s*[:#-]?\s*[A-Z0-9-]{4,}\b"),
+}
+
+_pii_analyzer = None
 
 
 class IngestError(Exception):
@@ -71,7 +123,7 @@ def validate_mime_type(file_content: bytes, declared_type: Optional[str] = None)
     Raises:
         IngestError: If MIME type is not accepted
     """
-    detected = magic.from_buffer(file_content, mime=True)
+    detected = detect_mime_type(file_content)
     
     if detected not in ACCEPTED_TYPES:
         raise IngestError(
@@ -81,6 +133,57 @@ def validate_mime_type(file_content: bytes, declared_type: Optional[str] = None)
         )
     
     return detected
+
+
+def detect_mime_type(file_content: bytes) -> str:
+    """Detect MIME type with libmagic when available, then pure-Python fallbacks."""
+    if magic is not None:
+        try:
+            detected = magic.from_buffer(file_content, mime=True)
+            if detected:
+                return detected
+        except Exception:
+            pass
+
+    if filetype is not None:
+        guessed = filetype.guess(file_content)
+        if guessed and guessed.mime:
+            return guessed.mime
+
+    # Minimal signature fallback for tests and Windows development without libmagic.
+    if file_content.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if file_content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if file_content.startswith((b"II*\x00", b"MM\x00*")):
+        return "image/tiff"
+    if file_content.startswith(b"%PDF"):
+        return "application/pdf"
+    if len(file_content) > 12 and file_content[8:12] == b"WEBP":
+        return "image/webp"
+    if len(file_content) > 12 and file_content[4:8] == b"ftyp":
+        brand = file_content[8:12]
+        if brand in {b"qt  "}:
+            return "video/quicktime"
+        return "video/mp4"
+    if file_content.startswith(b"RIFF") and len(file_content) > 12 and file_content[8:12] == b"AVI ":
+        return "video/x-msvideo"
+    if file_content.startswith(b"\x1aE\xdf\xa3"):
+        return "video/webm"
+
+    return "application/octet-stream"
+
+
+def validate_file_extension(filename: str, mime_type: str) -> str:
+    """Ensure the client filename extension is compatible with detected content."""
+    suffix = Path(filename or "").suffix.lower()
+    allowed = MIME_TO_ALLOWED_EXTENSIONS.get(mime_type, set())
+    if not suffix or suffix not in allowed:
+        raise IngestError(
+            f"File extension '{suffix or '[none]'}' does not match detected type {mime_type}",
+            code="invalid_extension",
+        )
+    return suffix
 
 
 def sanitize_filename(filename: str) -> str:
@@ -98,12 +201,14 @@ def sanitize_filename(filename: str) -> str:
     Returns:
         Sanitized filename safe for storage
     """
+    filename = unquote(filename or "")
+
     # Extract original extension
     original_path = Path(filename)
     original_ext = original_path.suffix.lower()
     
     # Get basename without path
-    basename = os.path.basename(filename)
+    basename = os.path.basename(filename.replace("\\", "/"))
     
     # Remove control characters
     basename = ''.join(char for char in basename if ord(char) >= 32)
@@ -212,6 +317,19 @@ def extract_exif_metadata(file_path: Path) -> Dict[str, Any]:
         return {}
 
 
+def _get_pii_analyzer():
+    """Load Presidio lazily so missing heavy models do not break app startup."""
+    global _pii_analyzer
+    if not settings.enable_pii_scrubbing or AnalyzerEngine is None:
+        return None
+    if _pii_analyzer is None:
+        try:
+            _pii_analyzer = AnalyzerEngine()
+        except Exception:
+            _pii_analyzer = None
+    return _pii_analyzer
+
+
 def detect_pii_in_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
     """
     Detect PII in EXIF metadata using presidio-analyzer.
@@ -224,31 +342,69 @@ def detect_pii_in_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
     
     pii_fields = []
     
-    # Check common EXIF fields for PII
-    pii_sensitive_fields = {
-        'GPSInfo': 'gps_coordinates',
-        'BodySerialNumber': 'camera_serial',
-        'SerialNumber': 'camera_serial',
-        'OwnerName': 'owner_name',
-        'Artist': 'owner_name',
-        'Copyright': 'copyright',
-        'ImageDescription': 'description',
-        'UserComment': 'user_comment',
-        'Software': 'software_version',
-    }
-    
-    for field, pii_type in pii_sensitive_fields.items():
+    for field, pii_type in SENSITIVE_EXIF_FIELDS.items():
         if field in metadata and metadata[field]:
             pii_fields.append({
                 "field": field,
                 "type": pii_type,
                 "action": "flagged"
             })
+
+    analyzer = _get_pii_analyzer()
+
+    for field, value in metadata.items():
+        if not value:
+            continue
+
+        text = str(value)
+        detected_types = set()
+
+        for pii_type, pattern in PII_PATTERNS.items():
+            if pattern.search(text):
+                detected_types.add(pii_type)
+
+        if analyzer is not None:
+            try:
+                results = analyzer.analyze(text=text, language="en")
+                detected_types.update(result.entity_type.lower() for result in results)
+            except Exception:
+                pass
+
+        for pii_type in sorted(detected_types):
+            pii_fields.append({
+                "field": field,
+                "type": pii_type,
+                "action": "redacted"
+            })
     
     return {
         "pii_detected": len(pii_fields) > 0,
         "fields": pii_fields
     }
+
+
+def redact_pii_text(value: Any) -> Any:
+    """Redact common PII patterns from a metadata value."""
+    if not isinstance(value, str):
+        return value
+
+    redacted = value
+    for pii_type, pattern in PII_PATTERNS.items():
+        redacted = pattern.sub(f"[REDACTED_{pii_type.upper()}]", redacted)
+    return redacted
+
+
+def scrub_metadata_for_display(metadata: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Remove sensitive EXIF fields and redact PII before API/report exposure."""
+    flags = detect_pii_in_metadata(metadata)
+    safe_metadata: Dict[str, Any] = {}
+
+    for field, value in metadata.items():
+        if field in SENSITIVE_EXIF_FIELDS:
+            continue
+        safe_metadata[field] = redact_pii_text(value)
+
+    return safe_metadata, flags
 
 
 def get_image_dimensions(file_path: Path) -> Tuple[Optional[int], Optional[int]]:
@@ -289,7 +445,8 @@ def get_video_duration(file_path: Path) -> Optional[float]:
 def process_upload(
     filename: str,
     file_content: bytes,
-    uploader_id: str
+    uploader_id: str,
+    precomputed_sha256: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Main ingest pipeline entry point.
@@ -317,6 +474,7 @@ def process_upload(
     mime_type = validate_mime_type(file_content)
     
     # Step 3: Sanitize filename
+    validate_file_extension(filename, mime_type)
     safe_filename = sanitize_filename(filename)
     
     # Step 4: Generate storage path
@@ -326,35 +484,41 @@ def process_upload(
     storage_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Step 6: Compute hash
-    sha256_hash = compute_sha256(file_content)
+    sha256_hash = precomputed_sha256 or compute_sha256(file_content)
     
     # Step 7: Write file to storage
     try:
         with open(storage_path, 'wb') as f:
             f.write(file_content)
+
+        # Step 8: Extract metadata and dimensions
+        exif_metadata = {}
+        pii_flags = {}
+        width, height = None, None
+        duration = None
+
+        if mime_type in ACCEPTED_IMAGE_TYPES:
+            raw_exif_metadata = extract_exif_metadata(storage_path)
+            exif_metadata, pii_flags = scrub_metadata_for_display(raw_exif_metadata)
+            width, height = get_image_dimensions(storage_path)
+
+        elif mime_type in ACCEPTED_VIDEO_TYPES:
+            width, height = get_image_dimensions(storage_path)
+            duration = get_video_duration(storage_path)
+    except IngestError:
+        if storage_path.exists():
+            storage_path.unlink()
+        raise
     except Exception as e:
-        raise IngestError(f"Failed to write file: {str(e)}", code="write_error")
-    
-    # Step 8: Extract metadata and dimensions
-    exif_metadata = {}
-    pii_flags = {}
-    width, height = None, None
-    duration = None
-    
-    if mime_type in ACCEPTED_IMAGE_TYPES:
-        exif_metadata = extract_exif_metadata(storage_path)
-        pii_flags = detect_pii_in_metadata(exif_metadata)
-        width, height = get_image_dimensions(storage_path)
-        
-    elif mime_type in ACCEPTED_VIDEO_TYPES:
-        width, height = get_image_dimensions(storage_path)
-        duration = get_video_duration(storage_path)
+        if storage_path.exists():
+            storage_path.unlink()
+        raise IngestError(f"Failed to process file: {str(e)}", code="processing_error")
     
     # Step 9: Return processed data
     return {
         "uuid": file_uuid,
         "original_filename": safe_filename,
-        "internal_path": str(storage_path.relative_to(settings.resolved_storage_path)),
+        "internal_path": storage_path.relative_to(settings.resolved_storage_path).as_posix(),
         "mime_type": mime_type,
         "file_size_bytes": len(file_content),
         "sha256_hash": sha256_hash,

@@ -13,6 +13,24 @@ from app.media.models import MediaItem, MediaTag, ProcessingStatus
 from app.users.models import User
 
 
+def resolve_storage_path(relative_path: str) -> Path:
+    """Resolve a storage-relative path and reject traversal outside STORAGE_ROOT."""
+    if not relative_path:
+        raise ValueError("Storage path is empty")
+    if "\\" in relative_path or ":" in relative_path or Path(relative_path).is_absolute():
+        raise ValueError("Storage path must be a relative POSIX-style path")
+
+    storage_root = settings.resolved_storage_path.resolve()
+    candidate = (storage_root / relative_path).resolve()
+
+    try:
+        candidate.relative_to(storage_root)
+    except ValueError as exc:
+        raise ValueError("Resolved path escapes storage root") from exc
+
+    return candidate
+
+
 def get_media_by_id(db: Session, media_id: str) -> Optional[MediaItem]:
     """Get media item by ID."""
     return db.query(MediaItem).filter(MediaItem.id == media_id).first()
@@ -146,31 +164,36 @@ def delete_media(db: Session, media_id: str, deleted_by: str) -> bool:
     media = get_media_by_id(db, media_id)
     if not media:
         return False
-    
-    # Delete associated files
-    storage_root = settings.resolved_storage_path
-    
-    # Delete original file
-    original_path = storage_root / media.internal_path
-    if original_path.exists():
-        os.remove(original_path)
-    
-    # Delete redacted file if exists
-    if media.redacted_path:
-        redacted_path = storage_root / media.redacted_path
-        if redacted_path.exists():
-            os.remove(redacted_path)
-    
-    # Delete thumbnail if exists
-    thumbnail_path = storage_root / "thumbnails" / f"{media.uuid}.jpg"
-    if thumbnail_path.exists():
-        os.remove(thumbnail_path)
+
+    try:
+        # Delete original file
+        original_path = resolve_storage_path(media.internal_path)
+        if original_path.exists():
+            os.remove(original_path)
+
+        # Delete redacted file if exists
+        if media.redacted_path:
+            redacted_path = resolve_storage_path(media.redacted_path)
+            if redacted_path.exists():
+                os.remove(redacted_path)
+
+        # Delete generated thumbnails
+        thumbnail_dir = resolve_storage_path("thumbnails")
+        if thumbnail_dir.exists():
+            for thumbnail_path in thumbnail_dir.glob(f"{media.uuid}*.jpg"):
+                if thumbnail_path.is_file():
+                    os.remove(thumbnail_path)
+    except ValueError:
+        return False
     
     # Delete children (video frames, PDF pages)
     for child in media.children:
-        child_path = storage_root / child.internal_path
-        if child_path.exists():
-            os.remove(child_path)
+        try:
+            child_path = resolve_storage_path(child.internal_path)
+            if child_path.exists():
+                os.remove(child_path)
+        except ValueError:
+            return False
         db.delete(child)
     
     # Delete from database
@@ -191,12 +214,15 @@ def get_file_path(media: MediaItem, use_redacted: bool = False) -> Optional[Path
     Returns:
         Path object or None if file doesn't exist
     """
-    storage_root = settings.resolved_storage_path
-    
     if use_redacted and media.redacted_path:
-        path = storage_root / media.redacted_path
+        relative_path = media.redacted_path
     else:
-        path = storage_root / media.internal_path
+        relative_path = media.internal_path
+
+    try:
+        path = resolve_storage_path(relative_path)
+    except ValueError:
+        return None
     
     if path.exists():
         return path

@@ -13,6 +13,14 @@ from app.audit.service import log_action
 from app.audit.models import AuditActionType
 
 
+class ReportIntegrityError(RuntimeError):
+    """Raised when report generation detects modified or missing evidence."""
+
+    def __init__(self, media_id: str):
+        super().__init__(f"File integrity check failed for media {media_id}")
+        self.media_id = media_id
+
+
 def generate_evidence_report(
     db: Session,
     media_ids: List[str],
@@ -43,6 +51,9 @@ def generate_evidence_report(
         
         if not media:
             continue
+
+        if not media_service.verify_file_integrity(media):
+            raise ReportIntegrityError(str(media_id))
         
         # Get thumbnail path
         from app.config import settings
@@ -64,7 +75,10 @@ def generate_evidence_report(
             "upload_timestamp": media.upload_timestamp,
             "width_px": media.width_px,
             "height_px": media.height_px,
-            "thumbnail_path": thumbnail_path
+            "thumbnail_path": thumbnail_path,
+            "redaction_status": "Redacted" if media.redacted_at else "Not redacted",
+            "hash_verified": True,
+            "audit_trail_ref": f"media:{media.id}",
         }
         
         media_items.append(item_data)
@@ -72,7 +86,7 @@ def generate_evidence_report(
     # Generate PDF
     pdf_buffer = build_evidence_report(
         case_name=case_name or "Evidence Report",
-        generated_by=generated_by_name or "Unknown",
+        generated_by=f"{generated_by_name or 'Unknown'} ({generated_by or 'unknown-id'})",
         media_items=media_items,
         notes=notes
     )
@@ -80,12 +94,13 @@ def generate_evidence_report(
     # Log report generation
     log_action(
         db=db,
-        action=AuditActionType.REPORT_GENERATE,
+        action=AuditActionType.EXPORT,
         user_id=generated_by,
         details={
             "case_name": case_name,
             "media_count": len(media_ids),
-            "included_media": media_ids
+            "included_media": media_ids,
+            "export_type": "pdf_report",
         }
     )
     

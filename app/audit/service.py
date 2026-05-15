@@ -8,6 +8,35 @@ from sqlalchemy.orm import Session
 
 from app.audit.models import AuditLog
 
+SENSITIVE_DETAIL_KEYS = {
+    "password",
+    "current_password",
+    "new_password",
+    "token",
+    "access_token",
+    "refresh_token",
+    "authorization",
+    "secret",
+    "secret_key",
+}
+
+
+def _sanitize_details(value: Any) -> Any:
+    """Redact secrets before audit details are serialized."""
+    if isinstance(value, dict):
+        sanitized = {}
+        for key, nested_value in value.items():
+            if key.lower() in SENSITIVE_DETAIL_KEYS:
+                sanitized[key] = "[REDACTED]"
+            else:
+                sanitized[key] = _sanitize_details(nested_value)
+        return sanitized
+
+    if isinstance(value, list):
+        return [_sanitize_details(item) for item in value]
+
+    return value
+
 
 def log_action(
     db: Session,
@@ -36,7 +65,7 @@ def log_action(
         Created audit log entry
     """
     # Serialize details to JSON string if provided
-    details_json = json.dumps(details) if details else None
+    details_json = json.dumps(_sanitize_details(details)) if details else None
     
     log_entry = AuditLog(
         user_id=user_id,

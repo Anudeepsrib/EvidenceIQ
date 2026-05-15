@@ -7,6 +7,7 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import type { FileRejection } from "react-dropzone";
 import { Upload, X, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,41 +32,7 @@ export function MediaUploadZone({ onClose }: MediaUploadZoneProps) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const uploadMutation = useUploadMedia();
 
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
-    // Handle rejected files
-    rejectedFiles.forEach(({ file, errors }) => {
-      const errorMsg = errors.map((e: any) => e.message).join(", ");
-      toast.error(`${file.name}: ${errorMsg}`);
-    });
-
-    // Add accepted files
-    const newFiles: UploadFile[] = acceptedFiles.map((file) => ({
-      file,
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      progress: 0,
-      status: "pending",
-    }));
-
-    setFiles((prev) => [...prev, ...newFiles]);
-
-    // Start uploads
-    newFiles.forEach((uploadFile) => {
-      handleUpload(uploadFile);
-    });
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "image/*": [".jpeg", ".jpg", ".png", ".tiff", ".webp"],
-      "video/*": [".mp4", ".mov", ".avi"],
-      "application/pdf": [".pdf"],
-    },
-    maxSize: MAX_FILE_SIZE,
-    multiple: true,
-  });
-
-  const handleUpload = async (uploadFile: UploadFile) => {
+  const handleUpload = useCallback(async (uploadFile: UploadFile) => {
     setFiles((prev) =>
       prev.map((f) =>
         f.id === uploadFile.id ? { ...f, status: "uploading" } : f
@@ -102,7 +69,41 @@ export function MediaUploadZone({ onClose }: MediaUploadZoneProps) {
         },
       }
     );
-  };
+  }, [uploadMutation]);
+
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
+    // Handle rejected files
+    rejectedFiles.forEach(({ file, errors }) => {
+      const errorMsg = errors.map((e) => e.message).join(", ");
+      toast.error(`${file.name}: ${errorMsg}`);
+    });
+
+    // Add accepted files
+    const newFiles: UploadFile[] = acceptedFiles.map((file) => ({
+      file,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      progress: 0,
+      status: "pending",
+    }));
+
+    setFiles((prev) => [...prev, ...newFiles]);
+
+    // Start uploads
+    newFiles.forEach((uploadFile) => {
+      handleUpload(uploadFile);
+    });
+  }, [handleUpload]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": [".jpeg", ".jpg", ".png", ".tiff", ".webp"],
+      "video/*": [".mp4", ".mov", ".avi"],
+      "application/pdf": [".pdf"],
+    },
+    maxSize: MAX_FILE_SIZE,
+    multiple: true,
+  });
 
   const removeFile = (id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id));

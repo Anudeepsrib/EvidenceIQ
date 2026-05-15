@@ -4,7 +4,7 @@ Append-only audit log for compliance and chain of custody.
 """
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Text, Index, ForeignKey
+from sqlalchemy import Column, String, DateTime, Text, Index, ForeignKey, event
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -26,6 +26,7 @@ class AuditActionType:
     
     # Media actions
     UPLOAD = "UPLOAD"
+    VIEW = "VIEW"
     PROCESS = "PROCESS"
     DELETE = "DELETE"
     REDACT = "REDACT"
@@ -33,6 +34,7 @@ class AuditActionType:
     # Search and reports
     SEARCH = "SEARCH"
     REPORT_GENERATE = "REPORT_GENERATE"
+    EXPORT = "EXPORT"
     
     # System
     SYSTEM_ERROR = "SYSTEM_ERROR"
@@ -80,3 +82,13 @@ class AuditLog(Base):
 
     def __repr__(self):
         return f"<AuditLog(id={self.id}, action={self.action}, user={self.user_id})>"
+
+
+@event.listens_for(AuditLog, "before_update")
+def prevent_audit_update(mapper, connection, target):
+    raise RuntimeError("Audit logs are append-only and cannot be updated")
+
+
+@event.listens_for(AuditLog, "before_delete")
+def prevent_audit_delete(mapper, connection, target):
+    raise RuntimeError("Audit logs are append-only and cannot be deleted")

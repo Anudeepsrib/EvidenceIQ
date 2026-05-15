@@ -92,12 +92,14 @@ def tag_search(
     
     # Log search
     client_ip = getattr(request.state, "client_ip", None)
+    import hashlib
+    tag_hashes = [hashlib.sha256(tag.encode()).hexdigest()[:16] for tag in tags]
     log_action(
         db=db,
         action=AuditActionType.SEARCH,
         user_id=current_user.id,
         details={
-            "tags": tags,
+            "tag_hashes": tag_hashes,
             "result_count": len(items),
             "search_type": "tag"
         },

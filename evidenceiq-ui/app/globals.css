@@ -45,6 +45,11 @@
 
   /* shadcn/ui variables */
   --radius: 0.5rem;
+
+  /* Local system font stacks; avoids build-time Google font fetches. */
+  --font-dm-sans: "Inter", "Segoe UI", Arial, sans-serif;
+  --font-fraunces: Georgia, "Times New Roman", serif;
+  --font-jetbrains: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
 }
 
 @layer base {

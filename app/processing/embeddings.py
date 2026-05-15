@@ -27,7 +27,12 @@ def get_clip_model():
 def get_chroma_client():
     """Get ChromaDB client."""
     import chromadb
-    return chromadb.PersistentClient(path=str(settings.resolved_chroma_path))
+    from chromadb.config import Settings
+
+    return chromadb.PersistentClient(
+        path=str(settings.resolved_chroma_path),
+        settings=Settings(anonymized_telemetry=False),
+    )
 
 
 def get_or_create_collection():

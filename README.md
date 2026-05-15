@@ -5,7 +5,7 @@
   
   <p><b>"Clone it. Run it. Own it. Your media never leaves your machine."</b></p>
   
-  <p>A privacy-first, fully local multimodal intelligence platform for organizations handling sensitive media — zero external API calls, fully air-gap capable.</p>
+  <p>A privacy-first local reference implementation for organizations handling sensitive media, PII-aware metadata controls, RBAC, local AI processing, and audit trails.</p>
 
   <p>
     <a href="https://github.com/Anudeepsrib/EvidenceIQ">
@@ -34,19 +34,19 @@
 
 ---
 
-## 🔒 The Zero-Cloud Promise
+## 🔒 Local-First Privacy Posture
 
-EvidenceIQ is built on the philosophy of complete data sovereignty. Your sensitive media should never leave your infrastructure.
+EvidenceIQ is built for local processing by default. AI inference is intended to run through local Ollama, while optional external integrations should be explicitly configured and reviewed before use.
 
 <table>
   <tr>
     <td width="50%" valign="top">
-      <h3>🚫 Zero External API Calls</h3>
-      <p>No cloud vision APIs (Google, Azure, AWS). All AI inference runs locally via Ollama. Your media never traverses networks you don't control.</p>
+      <h3>🚫 No Cloud AI by Default</h3>
+      <p>No cloud vision SDKs are imported by the backend. Local AI inference runs through Ollama unless a future integration is explicitly added and reviewed.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🧠 Local AI Processing</h3>
-      <p>Vision models (LLaVA, BakLLaVA, Moondream) and CLIP embeddings run entirely on your hardware. Zero data transmission.</p>
+      <p>Vision models (LLaVA, BakLLaVA, Moondream) and CLIP embeddings run on your hardware. Keep model downloads and package installs in mind for air-gapped deployments.</p>
     </td>
   </tr>
   <tr>
@@ -55,8 +55,8 @@ EvidenceIQ is built on the philosophy of complete data sovereignty. Your sensiti
       <p>All data, metadata, tags, and audit logs live inside a single <code>evidenceiq.db</code> file that you alone own and control.</p>
     </td>
     <td width="50%" valign="top">
-      <h3>📡 Zero Telemetry</h3>
-      <p>No hidden analytics, tracking, or data harvesting. Fully air-gap capable — works entirely offline after initial setup.</p>
+      <h3>📡 No App Telemetry</h3>
+      <p>Application code does not import analytics or telemetry SDKs, and ChromaDB is configured with anonymized telemetry disabled. Verify dependencies and deployment settings before asserting a formal zero-telemetry posture.</p>
     </td>
   </tr>
 </table>
@@ -73,7 +73,7 @@ EvidenceIQ is built on the philosophy of complete data sovereignty. Your sensiti
     </td>
     <td width="33%" valign="top">
       <b>🔗 Chain of Custody</b><br/>
-      SHA256 hashing on every upload. Hash verified on every access. Append-only audit logs for forensic-level integrity.
+      SHA256 hashing on every upload. Hash verified on file access. Application-level append-only audit logs for forensic-style integrity controls.
     </td>
     <td width="33%" valign="top">
       <b>🔐 RBAC Access Control</b><br/>
@@ -87,11 +87,11 @@ EvidenceIQ is built on the philosophy of complete data sovereignty. Your sensiti
     </td>
     <td width="33%" valign="top">
       <b>🛡️ PII Scrubbing</b><br/>
-      Automatic EXIF extraction and PII detection via Presidio. Redacted copies are separate — originals are never modified.
+      EXIF extraction with sensitive metadata removed before display. Redacted copies are separate — originals are never modified.
     </td>
     <td width="33%" valign="top">
       <b>📄 Report Generation</b><br/>
-      Generate watermarked PDF reports stamped "CONFIDENTIAL — EvidenceIQ" with full audit trail lineage.
+      Generate watermarked PDF reports stamped "CONFIDENTIAL - EvidenceIQ" with evidence hashes and audit references.
     </td>
   </tr>
 </table>
@@ -112,7 +112,7 @@ EvidenceIQ is built on the philosophy of complete data sovereignty. Your sensiti
     </td>
     <td width="25%" valign="top">
       <b>🏥 Healthcare</b><br/>
-      Process patient imaging internally with zero PHI transmission. HIPAA-friendly by design.
+      Process sensitive imaging locally with PII-aware controls. HIPAA claims require a formal compliance review.
     </td>
     <td width="25%" valign="top">
       <b>🔎 Compliance Teams</b><br/>
@@ -125,71 +125,74 @@ EvidenceIQ is built on the philosophy of complete data sovereignty. Your sensiti
 
 ## 🚀 Quick Start
 
-Get up and running locally in under 10 minutes.
+### Clone and Configure
 
-### 1. Pull Vision Models
-Ensure you have [Ollama](https://ollama.com) installed and pull the required models:
-```bash
-# Vision models
-ollama pull llava           # Default vision model
-ollama pull bakllava        # Alternative vision model
-ollama pull moondream       # Lightweight vision model
-
-# Text model
-ollama pull mistral         # For metadata summarization
-```
-
-### 2. Clone & Bootstrap
-
-**Docker Compose (Recommended):**
 ```bash
 git clone https://github.com/Anudeepsrib/EvidenceIQ.git
 cd EvidenceIQ
-
-# Configure environment
 cp .env.example .env
-# Edit .env and set SECRET_KEY: openssl rand -hex 32
-
-# Start all services
-docker-compose up -d
-
-# Wait for Ollama to pull models (first start takes time)
-docker-compose logs -f ollama
 ```
 
-**Development Setup:**
-```bash
-git clone https://github.com/Anudeepsrib/EvidenceIQ.git
-cd EvidenceIQ
+Edit `.env` and set a strong secret:
 
-# Backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+```bash
+openssl rand -hex 32
+```
+
+### Backend
+
+```bash
+python -m venv .venv
+
+source .venv/bin/activate
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+
 pip install -r requirements.txt
-cp .env.example .env
+pip install -r requirements-dev.txt
 alembic upgrade head
-
-# Frontend
-cd evidenceiq-ui
-npm install
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 3. Launch
-Launch two terminal windows to start the backend engine and frontend interface.
+### Frontend
 
-**Terminal 1 — FastAPI Backend:**
 ```bash
-source venv/bin/activate  # Windows: venv\Scripts\activate
-uvicorn app.main:app --reload
+npm install --prefix evidenceiq-ui
+npm run dev --prefix evidenceiq-ui
 ```
 
-**Terminal 2 — Next.js Frontend:**
+Open [http://localhost:3000](http://localhost:3000) for the UI and [http://localhost:8000/docs](http://localhost:8000/docs) for API docs in development.
+
+### Ollama Models
+
+Install [Ollama](https://ollama.com) and pull only the models you plan to use:
+
 ```bash
-cd evidenceiq-ui
-npm run dev
+ollama pull llava
+ollama pull bakllava
+ollama pull moondream
+ollama pull mistral
 ```
 
-Open [http://localhost:3000](http://localhost:3000) for the UI and [http://localhost:8000/docs](http://localhost:8000/docs) for the API docs.
+### Docker Compose
+
+```bash
+cp .env.example .env
+# Edit .env and set SECRET_KEY with openssl rand -hex 32
+docker compose up --build
+
+# Optional model pre-pull profile
+docker compose --profile models run --rm ollama-models
+```
+
+### Tests and Checks
+
+```bash
+python -m compileall app tests
+pytest
+npm run lint
+npm run build
+docker compose config
+```
 
 ---
 
@@ -203,11 +206,11 @@ Open [http://localhost:3000](http://localhost:3000) for the UI and [http://local
          ▼
 ┌──────────────────────────────────────────────────────────┐
 │                      INGEST PIPELINE                     │
-│  • MIME validation (python-magic)                        │
+│  • MIME and extension validation                         │
 │  • Filename sanitization (path traversal protection)     │
 │  • SHA256 hash computation (chain of custody)            │
 │  • UUID-based internal storage paths                     │
-│  • EXIF extraction + PII scrubbing (presidio-analyzer)   │
+│  • EXIF extraction + PII-aware display scrubbing         │
 └────────┬─────────────────────────────────────────────────┘
          │
          ▼
@@ -297,7 +300,7 @@ We recommend local models for optimal media analysis. Vision models are required
   <tr>
     <td width="50%" valign="top">
       <h3>🎫 JWT Authentication</h3>
-      <p>60-minute access tokens, 7-day refresh tokens. Secure session management without cloud dependency.</p>
+      <p>Configurable bounded access and refresh token lifetimes. Secure session management without cloud dependency.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🛡️ RBAC Enforcement</h3>
@@ -307,7 +310,7 @@ We recommend local models for optimal media analysis. Vision models are required
   <tr>
     <td width="50%" valign="top">
       <h3>⏱️ Rate Limiting</h3>
-      <p>60 requests per minute per user via SlowAPI. Protection against abuse without external infrastructure.</p>
+      <p>Configurable per-client rate limiting via SlowAPI. Protection against abuse without external infrastructure.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🧱 Defense in Depth</h3>
@@ -354,8 +357,8 @@ We recommend local models for optimal media analysis. Vision models are required
 Your instance can be customized entirely via the `.env` file:
 
 ```env
-# Security (REQUIRED - generate with: openssl rand -hex 32)
-SECRET_KEY=your-generated-secret-key
+# Security (required - generate with: openssl rand -hex 32)
+SECRET_KEY=replace-with-64-hex-character-random-value
 
 # Environment
 APP_ENV=development
@@ -380,7 +383,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 ---
 
 ## ⚠️ Disclaimer
-**General Use Only:** EvidenceIQ is an open-source software project. It does **not** constitute legal advice, certification, or guarantee of forensic admissibility. Organizations with specific compliance requirements should consult qualified legal and cybersecurity professionals. Always validate chain-of-custody workflows against your jurisdiction's requirements.
+**General Use Only:** EvidenceIQ is an open-source software project. It implements privacy-aware and forensic-style controls, but it does **not** constitute legal advice, formal compliance certification, or a guarantee of forensic admissibility. Organizations with specific compliance requirements should consult qualified legal, compliance, and cybersecurity professionals.
 
 ---
 

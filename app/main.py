@@ -1,11 +1,11 @@
 """
 EvidenceIQ - Main Application
-Privacy-first local multimodal intelligence platform.
-Zero external API calls. Fully air-gap capable.
+Privacy-aware local multimodal intelligence platform.
 """
-from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 
 from app.config import settings
@@ -30,52 +30,52 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
-    print(f"🚀 Starting EvidenceIQ v{settings.app_version} ({settings.app_env})")
+    print(f"Starting EvidenceIQ v{settings.app_version} ({settings.app_env})")
     
     # Initialize database
     init_db()
-    print("✅ Database initialized")
+    print("Database initialized")
     
     # Ensure storage directories exist
     from pathlib import Path
-    for subdir in ["uploads", "redacted", "thumbnails", "reports"]:
+    for subdir in ["uploads", "redacted", "thumbnails", "reports", "chromadb"]:
         (settings.resolved_storage_path / subdir).mkdir(parents=True, exist_ok=True)
-    print("✅ Storage directories initialized")
+    print("Storage directories initialized")
     
-    print(f"📁 Storage root: {settings.resolved_storage_path}")
-    print(f"🔐 Authentication: JWT (expires in {settings.access_token_expire_minutes} min)")
-    print(f"🤖 AI Models: Ollama @ {settings.ollama_base_url}")
-    print(f"🔍 Vector Store: ChromaDB @ {settings.resolved_chroma_path}")
+    print(f"Storage root: {settings.resolved_storage_path}")
+    print(f"Authentication: JWT (expires in {settings.access_token_expire_minutes} min)")
+    print(f"AI models: Ollama @ {settings.ollama_base_url}")
+    print(f"Vector store: ChromaDB @ {settings.resolved_chroma_path}")
     
     yield
     
     # Shutdown
-    print("🛑 Shutting down EvidenceIQ")
+    print("Shutting down EvidenceIQ")
 
 
 # Create FastAPI app
 app = FastAPI(
     title="EvidenceIQ API",
     description="""
-    Privacy-first local multimodal intelligence platform.
+    Privacy-aware local multimodal intelligence reference implementation.
     
     **Key Features:**
-    - Zero cloud transmission - fully air-gap capable
+    - Local-first AI processing through Ollama
     - RBAC-enforced access control (admin, investigator, reviewer, viewer)
     - Local vision models via Ollama (LLaVA, BakLLaVA, moondream)
     - Semantic search with CLIP embeddings
-    - PII scrubbing from metadata
-    - Evidence report generation with chain of custody
+    - PII-aware metadata controls
+    - Evidence reports with forensic-style hashes and audit references
     
     **Security:**
-    - JWT authentication with 60-minute expiration
-    - Rate limiting (60 req/min)
-    - SHA256 file hashing for chain of custody
-    - Append-only audit logging
+    - JWT authentication with bounded expiration
+    - Configurable rate limiting
+    - SHA256 file hashing for original uploads
+    - Application-level append-only audit logging
     """,
     version=settings.app_version,
-    docs_url="/docs" if not settings.is_production else None,
-    redoc_url="/redoc" if not settings.is_production else None,
+    docs_url="/docs" if settings.api_docs_enabled else None,
+    redoc_url="/redoc" if settings.api_docs_enabled else None,
     lifespan=lifespan,
 )
 
@@ -83,7 +83,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
+    allow_credentials=settings.cors_allow_credentials,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
     expose_headers=["X-Request-ID"],
@@ -94,6 +94,52 @@ app.add_middleware(LoggingMiddleware)
 
 # Rate limiting
 setup_rate_limiting(app)
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """Attach conservative browser security headers to every response."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    )
+    return response
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Return structured HTTP errors without FastAPI's nested detail wrapper."""
+    detail = exc.detail
+    if isinstance(detail, dict):
+        content = detail
+    else:
+        content = {
+            "error": "http_error",
+            "message": str(detail),
+        }
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=content,
+        headers=exc.headers,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Return concise validation errors without echoing request bodies."""
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": "validation_error",
+            "message": "Request validation failed",
+            "details": exc.errors(),
+        },
+    )
 
 
 # Global exception handler - no stack traces in production
@@ -157,19 +203,19 @@ def root():
     return {
         "message": "EvidenceIQ API",
         "version": settings.app_version,
-        "docs": "/docs",
+        "docs": "/docs" if settings.api_docs_enabled else None,
         "health": "/health"
     }
 
 
 # Include routers
-app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
-app.include_router(users_router, prefix="/users", tags=["User Management"])
-app.include_router(media_router, prefix="/media", tags=["Media"])
-app.include_router(processing_router, prefix="/process", tags=["Processing"])
-app.include_router(search_router, prefix="/search", tags=["Search"])
-app.include_router(reports_router, prefix="/reports", tags=["Reports"])
-app.include_router(audit_router, prefix="/audit", tags=["Audit"])
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(media_router)
+app.include_router(processing_router)
+app.include_router(search_router)
+app.include_router(reports_router)
+app.include_router(audit_router)
 
 
 if __name__ == "__main__":

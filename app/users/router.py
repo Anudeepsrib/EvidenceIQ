@@ -91,6 +91,17 @@ def create_user(
         )
 
 
+@router.get("/stats/by-role")
+def get_user_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Get user statistics by role (admin only).
+    """
+    return user_service.count_users_by_role(db)
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: str,
@@ -237,14 +248,3 @@ def delete_user(
     )
     
     return {"message": "User deactivated successfully"}
-
-
-@router.get("/stats/by-role")
-def get_user_stats(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
-):
-    """
-    Get user statistics by role (admin only).
-    """
-    return user_service.count_users_by_role(db)

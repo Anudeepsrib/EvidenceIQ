@@ -54,8 +54,8 @@ async def upload_media(
     
     Returns upload metadata. Processing happens asynchronously via `/process/{id}`.
     """
-    # Validate file size (stream to check)
-    contents = await file.read()
+    # Read at most one byte beyond the configured limit.
+    contents = await file.read(settings.max_file_size_bytes + 1)
     
     if len(contents) > settings.max_file_size_bytes:
         raise HTTPException(
@@ -67,17 +67,13 @@ async def upload_media(
         )
     
     try:
-        # Run ingest pipeline
-        media_data = ingest_pipeline.process_upload(
-            filename=file.filename,
-            file_content=contents,
-            uploader_id=current_user.id
-        )
-        
-        # Check for duplicate by hash
-        existing = media_service.get_media_by_hash(db, media_data["sha256_hash"])
+        detected_mime_type = ingest_pipeline.validate_mime_type(contents)
+        ingest_pipeline.validate_file_extension(file.filename or "", detected_mime_type)
+        sha256_hash = ingest_pipeline.compute_sha256(contents)
+
+        # Check for duplicate by hash before writing anything to storage.
+        existing = media_service.get_media_by_hash(db, sha256_hash)
         if existing:
-            # Return existing media info
             return MediaUploadResponse(
                 id=str(existing.id),
                 uuid=existing.uuid,
@@ -89,6 +85,14 @@ async def upload_media(
                 upload_timestamp=existing.upload_timestamp,
                 message="File already exists (duplicate detected)"
             )
+
+        # Run ingest pipeline
+        media_data = ingest_pipeline.process_upload(
+            filename=file.filename,
+            file_content=contents,
+            uploader_id=current_user.id,
+            precomputed_sha256=sha256_hash,
+        )
         
         # Create database record
         media = media_service.create_media(db, media_data)
@@ -177,6 +181,7 @@ def list_media(
 @router.get("/{media_id}", response_model=MediaItemResponse)
 def get_media(
     media_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permissions({"view_search"}))
 ):
@@ -198,6 +203,17 @@ def get_media(
         **{k: v for k, v in media.__dict__.items() if not k.startswith('_')},
         "children_count": len(media.children) if media.children else 0
     }
+
+    client_ip = getattr(request.state, "client_ip", None)
+    log_action(
+        db=db,
+        action=AuditActionType.VIEW,
+        user_id=current_user.id,
+        resource_type="media",
+        resource_id=media_id,
+        details={"view": "metadata"},
+        ip_address=client_ip,
+    )
     
     return result
 
@@ -205,6 +221,7 @@ def get_media(
 @router.get("/{media_id}/file")
 def get_media_file(
     media_id: str,
+    request: Request,
     use_redacted: bool = Query(False, description="Serve redacted version if available"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permissions({"view_search"}))
@@ -245,6 +262,17 @@ def get_media_file(
                 "message": "File integrity check failed. File may have been tampered with."
             }
         )
+
+    client_ip = getattr(request.state, "client_ip", None)
+    log_action(
+        db=db,
+        action=AuditActionType.VIEW,
+        user_id=current_user.id,
+        resource_type="media",
+        resource_id=media_id,
+        details={"view": "file", "redacted": use_redacted and bool(media.redacted_path)},
+        ip_address=client_ip,
+    )
     
     # Determine filename for download
     filename = media.original_filename
@@ -440,11 +468,11 @@ def redact_media(
             redacted_hash = hashlib.sha256(f.read()).hexdigest()
         
         # Update database
-        media.redacted_path = str(redacted_path.relative_to(settings.resolved_storage_path))
+        media.redacted_path = redacted_path.relative_to(settings.resolved_storage_path).as_posix()
         media.redacted_at = datetime.utcnow()
         media.redacted_by = current_user.id
         
-        # Update PII flags
+        # Update PII flags without exposing scrubbed values.
         media.pii_flags = {
             "scrubbed_at": datetime.utcnow().isoformat(),
             "scrubbed_by": str(current_user.id),

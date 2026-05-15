@@ -56,11 +56,11 @@ def process_single_media(
     # Update status to processing
     media_service.update_processing_status(db, media_id, ProcessingStatus.PROCESSING)
     
-    # Get file path
+    # Get file path through the storage-root guard.
     storage_root = settings.resolved_storage_path
-    file_path = storage_root / media.internal_path
+    file_path = media_service.get_file_path(media)
     
-    if not file_path.exists():
+    if not file_path or not file_path.exists():
         media_service.update_processing_status(db, media_id, ProcessingStatus.FAILED)
         return {"error": "File not found", "media_id": media_id}
     

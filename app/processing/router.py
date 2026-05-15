@@ -18,63 +18,6 @@ from app.audit.models import AuditActionType
 router = APIRouter(prefix="/process", tags=["Processing"])
 
 
-@router.post("/{media_id}")
-def process_single(
-    media_id: str,
-    request: Request,
-    force: bool = False,
-    model: Optional[str] = "llava",
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_permissions({"tag_classify"}))
-):
-    """
-    Process a single media item through the vision pipeline.
-    
-    **Pipeline steps:**
-    1. Classification (document | photograph | screenshot | ...)
-    2. Description generation (2-3 factual sentences)
-    3. Entity tagging (people, objects, location, etc.)
-    4. CLIP embedding generation for semantic search
-    
-    **For videos:** Extracts frames at 1fps, processes each
-    **For PDFs:** Extracts embedded images, processes each
-    
-    - **force**: Reprocess even if already processed (default: false)
-    - **model**: Vision model - llava, bakllava, moondream (default: llava)
-    """
-    # Validate media exists
-    media = media_service.get_media_by_id(db, media_id)
-    if not media:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"error": "not_found", "message": "Media item not found"}
-        )
-    
-    # Validate model
-    if model not in ["llava", "bakllava", "moondream"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": "invalid_model", "message": f"Model {model} not supported"}
-        )
-    
-    # Process
-    results = processing_service.process_single_media(
-        db=db,
-        media_id=media_id,
-        model=model,
-        force=force,
-        processed_by=current_user.id
-    )
-    
-    if "error" in results and not results.get("status"):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"error": "processing_failed", "message": results["error"]}
-        )
-    
-    return results
-
-
 @router.post("/batch")
 def process_batch(
     request: Request,
@@ -133,6 +76,62 @@ def process_batch(
     
     return results
 
+
+@router.post("/{media_id}")
+def process_single(
+    media_id: str,
+    request: Request,
+    force: bool = False,
+    model: Optional[str] = "llava",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permissions({"tag_classify"}))
+):
+    """
+    Process a single media item through the vision pipeline.
+
+    **Pipeline steps:**
+    1. Classification (document | photograph | screenshot | ...)
+    2. Description generation (2-3 factual sentences)
+    3. Entity tagging (people, objects, location, etc.)
+    4. CLIP embedding generation for semantic search
+
+    **For videos:** Extracts frames at 1fps, processes each
+    **For PDFs:** Extracts embedded images, processes each
+
+    - **force**: Reprocess even if already processed (default: false)
+    - **model**: Vision model - llava, bakllava, moondream (default: llava)
+    """
+    # Validate media exists
+    media = media_service.get_media_by_id(db, media_id)
+    if not media:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "not_found", "message": "Media item not found"}
+        )
+
+    # Validate model
+    if model not in ["llava", "bakllava", "moondream"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "invalid_model", "message": f"Model {model} not supported"}
+        )
+
+    # Process
+    results = processing_service.process_single_media(
+        db=db,
+        media_id=media_id,
+        model=model,
+        force=force,
+        processed_by=current_user.id
+    )
+
+    if "error" in results and not results.get("status"):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "processing_failed", "message": results["error"]}
+        )
+
+    return results
 
 @router.get("/models")
 def list_models(

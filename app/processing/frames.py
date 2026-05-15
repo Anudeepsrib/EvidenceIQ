@@ -88,7 +88,7 @@ def extract_video_frames(
                     "uuid": frame_uuid,
                     "frame_number": frame_number,
                     "timestamp_seconds": round(timestamp, 2),
-                    "extracted_path": str(frame_path.relative_to(storage_root)),
+                    "extracted_path": frame_path.relative_to(storage_root).as_posix(),
                     "mime_type": "image/jpeg",
                     "file_size_bytes": file_size,
                     "width_px": width,
@@ -186,7 +186,7 @@ def extract_single_frame(video_path: str, timestamp_seconds: float) -> Optional[
         
         cap.release()
         
-        return str(frame_path.relative_to(storage_root))
+        return frame_path.relative_to(storage_root).as_posix()
         
     except Exception:
         return None

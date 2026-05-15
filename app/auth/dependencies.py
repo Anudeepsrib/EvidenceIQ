@@ -13,7 +13,7 @@ from app.auth.schemas import ROLE_PERMISSIONS, UserResponse
 from app.users.models import User
 
 # Security scheme for JWT tokens
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 class AuthenticationError(HTTPException):
@@ -52,6 +52,9 @@ def get_current_user(
     Raises:
         AuthenticationError: If token is invalid or user not found
     """
+    if credentials is None:
+        raise AuthenticationError("Token required")
+
     token = credentials.credentials
     
     if not token:

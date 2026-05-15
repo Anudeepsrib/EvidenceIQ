@@ -72,7 +72,7 @@ class TestAuthentication:
     def test_get_me_no_token(self, client):
         """Get current user without token fails."""
         response = client.get("/auth/me")
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     def test_get_me_invalid_token(self, client):
         """Get current user with invalid token fails."""

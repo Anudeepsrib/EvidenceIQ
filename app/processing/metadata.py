@@ -59,7 +59,7 @@ def scrub_exif_metadata(
             piexif.GPSIFD.GPSLongitude,
             piexif.GPSIFD.GPSAltitudeRef,
             piexif.GPSIFD.GPSAltitude,
-            piexif.GPSIFD.GPSTimestamp,
+            piexif.GPSIFD.GPSTimeStamp,
             piexif.GPSIFD.GPSSatellites,
             piexif.GPSIFD.GPSStatus,
             piexif.GPSIFD.GPSMeasureMode,
@@ -86,21 +86,25 @@ def scrub_exif_metadata(
         ]
     
     if scrub_camera_serial:
-        tags_to_scrub["0th"] = [
-            piexif.ImageIFD.BodySerialNumber,
-            piexif.ImageIFD.CameraOwnerName,
-        ]
+        tags_to_scrub.setdefault("Exif", [])
+        tags_to_scrub["Exif"].extend([
+            piexif.ExifIFD.BodySerialNumber,
+            piexif.ExifIFD.CameraOwnerName,
+        ])
     
     if scrub_owner:
+        tags_to_scrub.setdefault("0th", [])
         tags_to_scrub["0th"].extend([
             piexif.ImageIFD.Artist,
             piexif.ImageIFD.Copyright,
         ])
     
     if scrub_software:
+        tags_to_scrub.setdefault("0th", [])
         tags_to_scrub["0th"].append(piexif.ImageIFD.Software)
     
     if scrub_dates:
+        tags_to_scrub.setdefault("0th", [])
         tags_to_scrub["0th"].extend([
             piexif.ImageIFD.DateTime,
         ])

@@ -6,6 +6,7 @@
     "install:ui": "npm install --prefix evidenceiq-ui",
     "dev:ui": "npm run dev --prefix evidenceiq-ui",
     "dev": "npm run dev --prefix evidenceiq-ui",
+    "lint": "npm run lint --prefix evidenceiq-ui",
     "build": "npm run build --prefix evidenceiq-ui"
   }
 }
