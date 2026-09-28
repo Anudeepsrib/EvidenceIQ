@@ -196,6 +196,23 @@ docker compose config
 
 ---
 
+## Repository Layout
+
+```text
+app/                 FastAPI application
+alembic/             Database migration configuration
+evidenceiq-ui/       Next.js frontend
+tests/               Backend tests
+utils/               Standalone local media utilities
+docs/                Architecture decisions and project records
+.github/workflows/   Continuous integration
+```
+
+Development conventions are in [CONTRIBUTING.md](CONTRIBUTING.md). Historical audit results live
+under [`docs/audits`](docs/audits), and architecture decisions under [`docs/decisions`](docs/decisions).
+
+---
+
 ## 🏗️ Architecture
 
 ```
